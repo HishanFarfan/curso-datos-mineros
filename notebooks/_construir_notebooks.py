@@ -402,11 +402,16 @@ def modulo_4():
              "plot_acf(serie, lags=60, ax=ax[0])\n"
              "plot_pacf(serie, lags=60, ax=ax[1], method='ywm')\n"
              "plt.show()"),
-        md("## 3. Diagnóstico visual de estacionariedad"),
-        code("fig, ax = plt.subplots(figsize=(12,4))\n"
-             "serie.rolling(168).mean().plot(ax=ax, label='media móvil (semana)')\n"
-             "serie.rolling(168).std().plot(ax=ax, label='std móvil (semana)')\n"
-             "ax.legend(); plt.title('¿Cambian nivel y dispersión?'); plt.show()"),
+        md("## 3. Diagnóstico visual de estacionariedad",
+           "",
+           "Nivel (~85–90) y dispersión (~2–5) están en escalas muy distintas: en un "
+           "mismo eje la caída de la media no se aprecia. Un panel por estadístico."),
+        code("fig, ax = plt.subplots(2, 1, figsize=(12, 6), sharex=True)\n"
+             "serie.rolling(168).mean().plot(ax=ax[0], color='tab:blue')\n"
+             "ax[0].set(title='Media móvil (semana) — ¿cambia el nivel?', ylabel='Recuperación [%]')\n"
+             "serie.rolling(168).std().plot(ax=ax[1], color='tab:orange')\n"
+             "ax[1].set(title='Std móvil (semana) — ¿cambia la dispersión?', ylabel='desv. est. [%]')\n"
+             "plt.tight_layout(); plt.show()"),
         md("## 4. Pruebas ADF y KPSS"),
         code("from statsmodels.tsa.stattools import adfuller, kpss\n"
              "\n"
