@@ -548,6 +548,12 @@ def modulo_6():
              "fc.plot(ax=ax, label='pronóstico')\n"
              "ax.fill_between(ci.index, ci.iloc[:,0], ci.iloc[:,1], alpha=0.2)\n"
              "ax.legend(); plt.show()"),
+        md("**El pronóstico es casi plano — y así debe ser.** La recuperación horaria es "
+           "nivel + una onda diaria de ±1 pt + ruido AR(≈0.6) con desviación ≈ 2.6. La "
+           "memoria del AR se agota en ~8 h; más allá, el mejor pronóstico posible es el "
+           "nivel actual. El SARIMA no está fallando: está diciendo que esta variable "
+           "**no se pronostica hora a hora**. Lo confirmamos en §5 (apenas le gana al naïve). "
+           "En §8 se ve el contraste con una variable que sí tiene estructura."),
         md("## 4. Métricas de error"),
         code("def metricas(y, yhat):\n"
              "    y, yhat = np.asarray(y), np.asarray(yhat)\n"
@@ -592,13 +598,41 @@ def modulo_6():
              "obs = test.iloc[:48]\n"
              "for h in [1, 2, 4, 8, 24, 48]:\n"
              "    print(f'h={h:>2}  MAE acumulado = {np.mean(np.abs(obs.iloc[:h].values - h_pred.iloc[:h].values)):.3f}')"),
-        md("## 8. Tabla de decisión (complétala)"),
-        md("| Modelo | MAE | RMSE | MAPE | ¿supera naïve? | ¿estable en backtest? |",
+        md("## 8. Contraste: una variable sí pronosticable",
+           "",
+           "`Tonelaje_tph` tiene estacionalidad de turno (±120 t/h) y onda diaria (±55): "
+           "estructura determinista que un modelo estacional captura. Mismo procedimiento, "
+           "otra variable."),
+        code("serie_t = df['Tonelaje_tph'].dropna()\n"
+             "nt = int(len(serie_t) * 0.8)\n"
+             "train_t, test_t = serie_t.iloc[:nt], serie_t.iloc[nt:]\n"
+             "mod_t = SARIMAX(train_t, order=(2,1,1), seasonal_order=(0,1,1,24),\n"
+             "                enforce_stationarity=False, enforce_invertibility=False).fit(disp=False)\n"
+             "pred_t = mod_t.get_forecast(steps=len(test_t))\n"
+             "fc_t = pred_t.predicted_mean\n"
+             "ci_t = pred_t.conf_int()"),
+        code("fig, ax = plt.subplots(1, 2, figsize=(13, 4))\n"
+             "for a, sl, ttl in [(ax[0], slice(0, 96), 'primeras 96 h'),\n"
+             "                   (ax[1], slice(None), 'horizonte completo')]:\n"
+             "    train_t.iloc[-120:].plot(ax=a, label='train')\n"
+             "    test_t.iloc[sl].plot(ax=a, label='observado')\n"
+             "    fc_t.iloc[sl].plot(ax=a, label='pronóstico')\n"
+             "    a.fill_between(ci_t.iloc[sl].index, ci_t.iloc[sl, 0], ci_t.iloc[sl, 1], alpha=0.2)\n"
+             "    a.set_title(ttl)\n"
+             "ax[1].legend(); plt.tight_layout(); plt.show()"),
+        code("print('naïve  ', {k: round(v,1) for k,v in metricas(test_t, pd.Series(train_t.iloc[-1], index=test_t.index)).items()})\n"
+             "print('SARIMA ', {k: round(v,1) for k,v in metricas(test_t, fc_t).items()})"),
+        md("El pronóstico **repite el patrón diario**, la banda tiene forma y el SARIMA "
+           "le gana al naïve con claridad. La diferencia no está en el modelo sino en la "
+           "variable: **elegir un objetivo pronosticable es parte del trabajo.**"),
+        md("## 9. Tabla de decisión (complétala)"),
+        md("| Variable / Modelo | MAE | RMSE | MAPE | ¿supera naïve? | ¿estable en backtest? |",
            "|---|---|---|---|---|---|",
-           "| naïve | | | | — | |",
-           "| SARIMA | | | | | |"),
+           "| Recuperación · naïve | | | | — | |",
+           "| Recuperación · SARIMA | | | | | |",
+           "| Tonelaje · SARIMA | | | | | — |"),
         ACT("Cambia el corte a 70/30 y observa si la conclusión se mantiene.",
-            "Repite la evaluación para `Tonelaje_tph`.",
+            "Repite la evaluación para `Potencia_kW` (ruido casi blanco: ¿qué esperas?).",
             "¿A partir de qué horizonte el MAE supera el 5 % del valor típico de la variable?",
             "¿El modelo tiene sesgo (ME ≠ 0)? ¿Subestima o sobrestima?"),
         CIERRE("Sabemos cuánto se equivoca el modelo, a qué horizonte y si supera una "
