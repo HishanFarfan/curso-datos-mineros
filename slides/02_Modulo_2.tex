@@ -73,7 +73,8 @@ Regla de desviaciones estándar: $z_i=\dfrac{x_i-\bar{x}}{s}$, sospechoso si $|z
 \begin{frame}[fragile]{Comparar condiciones de operación}
 \begin{lstlisting}
 df.groupby("Turno")["Tonelaje"].agg(["mean","median","std","count"])
-df.boxplot(column="Tonelaje", by="Turno")
+df.boxplot(column="Tonelaje", by="Turno")          # matplotlib
+sns.boxplot(data=df, x="Turno", y="Tonelaje")      # seaborn
 \end{lstlisting}
 \vspace{0.5em}
 \begin{center}
@@ -105,6 +106,21 @@ r=\frac{\operatorname{Cov}(X,Y)}{s_X s_Y}\in[-1,1]
 \qquad
 \text{secuencia: visualizar}\fl\text{calcular}\fl\text{interpretar}
 \]
+\end{frame}
+
+\begin{frame}[fragile]{Visualizar la matriz de correlación}
+\begin{lstlisting}
+num = df[["Tonelaje","Ley_Cu","Recuperacion","Potencia"]]
+num.corr()                     # la tabla
+
+# matplotlib: ejes y barra de color a mano
+plt.imshow(num.corr(), vmin=-1, vmax=1, cmap="coolwarm")
+plt.colorbar()
+
+# seaborn: anota los valores y rotula los ejes solo
+sns.heatmap(num.corr(), annot=True, vmin=-1, vmax=1, cmap="coolwarm")
+\end{lstlisting}
+\idea{el heatmap anotado se lee de un vistazo; \code{imshow} necesita más trabajo manual}
 \end{frame}
 
 \begin{frame}{Relaciones espurias}

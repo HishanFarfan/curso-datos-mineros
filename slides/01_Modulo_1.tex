@@ -33,20 +33,23 @@ En el curso se trabaja con \textbf{notebooks preparados en Google Colab}. Lo imp
 Si una celda anterior no se ejecutó, las siguientes fallan.
 \end{frame}
 
-\begin{frame}[fragile]{Tres librerías durante las primeras sesiones}
+\begin{frame}[fragile]{Las librerías de las primeras sesiones}
 \begin{columns}[T]
-\column{0.33\linewidth}
+\column{0.25\linewidth}
 \textbf{pandas}\\ datos tabulares: importar, filtrar, fechas, faltantes, agrupar.
-\column{0.33\linewidth}
+\column{0.25\linewidth}
 \textbf{NumPy}\\ operaciones numéricas y valores especiales (\code{np.nan}).
-\column{0.33\linewidth}
+\column{0.25\linewidth}
 \textbf{matplotlib}\\ gráficos: \code{plot}, \code{hist}, \code{scatter}, \code{boxplot}.
+\column{0.25\linewidth}
+\textbf{seaborn}\\ se apoya en matplotlib; gráficos estadísticos en una línea.
 \end{columns}
 \vfill
 \begin{lstlisting}
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns          # gráficos estadísticos, sobre matplotlib
 \end{lstlisting}
 No necesitamos cada librería completa: solo las herramientas del problema.
 \end{frame}
@@ -187,6 +190,24 @@ Dispersión & ¿Cómo se relacionan dos variables?\\
 \vfill
 El histograma \textbf{elimina el orden temporal}: dos series muy distintas pueden tener
 el mismo histograma. Esa idea será central al pasar a series temporales.
+\end{frame}
+
+\begin{frame}[fragile]{Los cuatro gráficos: matplotlib y seaborn}
+La misma figura, dos formas de pedirla. seaborn recibe el \code{DataFrame} y los
+nombres de columnas; el eje y \code{plt.show()} siguen siendo de matplotlib.
+\begin{lstlisting}
+# --- matplotlib ---
+df["Tonelaje_tph"].plot()
+df["Tonelaje_tph"].hist(bins=40)
+plt.boxplot(df["Tonelaje_tph"].dropna())
+plt.scatter(df["Tonelaje_tph"], df["Potencia_kW"])
+
+# --- seaborn ---
+sns.lineplot(data=df["Tonelaje_tph"])
+sns.histplot(df["Tonelaje_tph"], bins=40)
+sns.boxplot(y=df["Tonelaje_tph"])
+sns.scatterplot(data=df, x="Tonelaje_tph", y="Potencia_kW")
+\end{lstlisting}
 \end{frame}
 
 \begin{frame}[fragile]{Flujo mínimo del Módulo 1}

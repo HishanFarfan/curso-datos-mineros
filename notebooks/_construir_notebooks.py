@@ -65,6 +65,7 @@ SETUP = lambda: code(
     "import numpy as np",
     "import pandas as pd",
     "import matplotlib.pyplot as plt",
+    "import seaborn as sns          # gráficos estadísticos (preinstalado en Colab)",
     "",
     "plt.rcParams['figure.figsize'] = (12, 4)",
     "pd.set_option('display.width', 120)",
@@ -180,15 +181,34 @@ def modulo_1():
         code("# El sensor de potencia estuvo 'congelado' un tramo: valor repetido muchas horas\n"
              "rep = df['Potencia_kW'].eq(df['Potencia_kW'].shift())\n"
              "rep.groupby((~rep).cumsum()).sum().max()"),
-        md("## 8. Primera visualización"),
-        code("df['Tonelaje_tph'].plot(title='Evolución del tonelaje')\n"
+        md("## 8. Primera visualización",
+           "",
+           "Cada gráfico va en dos versiones: **matplotlib** (control total, más código) y "
+           "**seaborn** (recibe el DataFrame y nombres de columnas; estilo más legible)."),
+        code("# matplotlib\n"
+             "df['Tonelaje_tph'].plot(title='Evolución del tonelaje')\n"
              "plt.ylabel('t/h'); plt.show()"),
-        code("df['Tonelaje_tph'].dropna().hist(bins=40)\n"
+        code("# seaborn\n"
+             "sns.lineplot(data=df['Tonelaje_tph'])\n"
+             "plt.title('Evolución del tonelaje'); plt.ylabel('t/h'); plt.show()"),
+        code("# matplotlib\n"
+             "df['Tonelaje_tph'].dropna().hist(bins=40)\n"
              "plt.xlabel('t/h'); plt.title('Distribución del tonelaje'); plt.show()"),
-        code("plt.boxplot(df['Tonelaje_tph'].dropna(), vert=True)\n"
+        code("# seaborn\n"
+             "sns.histplot(df['Tonelaje_tph'].dropna(), bins=40)\n"
+             "plt.xlabel('t/h'); plt.title('Distribución del tonelaje'); plt.show()"),
+        code("# matplotlib\n"
+             "plt.boxplot(df['Tonelaje_tph'].dropna(), vert=True)\n"
              "plt.ylabel('t/h'); plt.title('Boxplot tonelaje'); plt.show()"),
-        code("plt.scatter(df['Tonelaje_tph'], df['Potencia_kW'], s=4, alpha=0.3)\n"
+        code("# seaborn\n"
+             "sns.boxplot(y=df['Tonelaje_tph'])\n"
+             "plt.ylabel('t/h'); plt.title('Boxplot tonelaje'); plt.show()"),
+        code("# matplotlib\n"
+             "plt.scatter(df['Tonelaje_tph'], df['Potencia_kW'], s=4, alpha=0.3)\n"
              "plt.xlabel('Tonelaje [t/h]'); plt.ylabel('Potencia [kW]')\n"
+             "plt.title('Tonelaje vs Potencia'); plt.show()"),
+        code("# seaborn\n"
+             "sns.scatterplot(data=df, x='Tonelaje_tph', y='Potencia_kW', s=15, alpha=0.3)\n"
              "plt.title('Tonelaje vs Potencia'); plt.show()"),
         md("## 9. Guardar la base preparada"),
         code("df.to_csv('serie_preparada_M1.csv')\n"
@@ -230,24 +250,43 @@ def modulo_2():
              "at = v[(v < lim_inf) | (v > lim_sup)]\n"
              "print('límites:', round(lim_inf,1), round(lim_sup,1))\n"
              "print('n atípicos:', len(at))"),
-        code("v.hist(bins=40); plt.title('Tonelaje'); plt.show()\n"
+        md("Cada figura va en dos versiones equivalentes: **matplotlib** y **seaborn**."),
+        code("# matplotlib\n"
+             "v.hist(bins=40); plt.title('Tonelaje'); plt.show()\n"
              "plt.boxplot(v); plt.title('Tonelaje'); plt.show()"),
+        code("# seaborn\n"
+             "sns.histplot(v, bins=40); plt.title('Tonelaje'); plt.show()\n"
+             "sns.boxplot(x=v); plt.title('Tonelaje'); plt.show()"),
         md("## 4. Comparación entre condiciones de operación"),
         code("df.groupby('Turno')['Tonelaje_tph'].agg(['mean','median','std','count'])"),
         code("df.groupby('Tipo_mineral')[['Ley_Cu_pct','Recuperacion_pct']].agg(['mean','std'])"),
-        code("df.boxplot(column='Tonelaje_tph', by='Turno')\n"
+        code("# matplotlib\n"
+             "df.boxplot(column='Tonelaje_tph', by='Turno')\n"
              "plt.suptitle(''); plt.title('Tonelaje por turno'); plt.show()"),
+        code("# seaborn\n"
+             "sns.boxplot(data=df, x='Turno', y='Tonelaje_tph')\n"
+             "plt.title('Tonelaje por turno'); plt.show()"),
         md("**Ojo:** una diferencia entre periodos puede deberse al *tiempo* o a un "
            "*cambio de condición* (aquí, la campaña de mineral A→B)."),
         md("## 5. Relaciones entre variables"),
         code("num = df[['Tonelaje_tph','Ley_Cu_pct','Recuperacion_pct','Potencia_kW']]\n"
              "num.corr().round(2)"),
         code("num.corr(method='spearman').round(2)"),
-        code("plt.scatter(df['Ley_Cu_pct'], df['Recuperacion_pct'], s=4, alpha=0.3)\n"
+        code("# matplotlib\n"
+             "plt.scatter(df['Ley_Cu_pct'], df['Recuperacion_pct'], s=4, alpha=0.3)\n"
              "plt.xlabel('Ley Cu [%]'); plt.ylabel('Recuperación [%]'); plt.show()"),
-        code("im = plt.imshow(num.corr(), vmin=-1, vmax=1, cmap='coolwarm')\n"
+        code("# seaborn — color por campaña de mineral\n"
+             "sns.scatterplot(data=df, x='Ley_Cu_pct', y='Recuperacion_pct',\n"
+             "                hue='Tipo_mineral', s=15, alpha=0.4)\n"
+             "plt.show()"),
+        code("# matplotlib\n"
+             "im = plt.imshow(num.corr(), vmin=-1, vmax=1, cmap='coolwarm')\n"
              "plt.xticks(range(4), num.columns, rotation=45, ha='right')\n"
              "plt.yticks(range(4), num.columns); plt.colorbar(im); plt.show()"),
+        code("# seaborn\n"
+             "sns.heatmap(num.corr(), annot=True, fmt='.2f', vmin=-1, vmax=1,\n"
+             "            cmap='coolwarm', square=True)\n"
+             "plt.show()"),
         md("## 6. Una prueba de hipótesis (ejemplo)"),
         code("from scipy import stats\n"
              "dia = df.loc[df['Turno']=='Dia', 'Recuperacion_pct'].dropna()\n"
@@ -263,9 +302,16 @@ def modulo_2():
              "mezcla = orig.sample(frac=1, random_state=0).reset_index(drop=True)\n"
              "print('media / std originales:', round(orig.mean(),1), round(orig.std(),1))\n"
              "print('media / std mezcladas :', round(mezcla.mean(),1), round(mezcla.std(),1))"),
-        code("fig, ax = plt.subplots(2, 1, figsize=(12, 6))\n"
+        code("# matplotlib\n"
+             "fig, ax = plt.subplots(2, 1, figsize=(12, 6))\n"
              "orig.reset_index(drop=True).plot(ax=ax[0], title='Orden real')\n"
              "mezcla.plot(ax=ax[1], title='Orden mezclado (mismos valores)')\n"
+             "plt.tight_layout(); plt.show()"),
+        code("# seaborn\n"
+             "fig, ax = plt.subplots(2, 1, figsize=(12, 6))\n"
+             "sns.lineplot(data=orig.reset_index(drop=True), ax=ax[0])\n"
+             "sns.lineplot(data=mezcla, ax=ax[1])\n"
+             "ax[0].set_title('Orden real'); ax[1].set_title('Orden mezclado (mismos valores)')\n"
              "plt.tight_layout(); plt.show()"),
         md("Los descriptivos son idénticos; la **estructura temporal desapareció**. "
            "Eso es lo que la estadística clásica no captura."),
