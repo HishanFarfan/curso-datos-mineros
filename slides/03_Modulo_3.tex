@@ -1,0 +1,156 @@
+\input{preambulo.tex}
+
+\begin{document}
+\portada{3}{Introducción a las series temporales}
+
+\begin{frame}{Objetivo del módulo}
+Reconocer una serie temporal, identificar sus componentes y explorar cómo cambia una
+variable en el tiempo.
+
+\ruta{
+\text{estructura temporal}\fl\text{componentes}\fl\text{rezagos y diferencias}\fl\text{estadísticas móviles}\fl\text{descomposición}
+}
+\idea{¿Qué información aparece cuando dejamos de mirar una distribución y respetamos el orden temporal?}
+\end{frame}
+
+\begin{frame}{Del dato convencional a la serie}
+Cada observación tiene una posición temporal: $(t_1,x_1),\dots,(t_n,x_n)$.
+\[
+100,\ 105,\ 110,\ 115,\ 120 \quad\text{vs.}\quad 115,\ 100,\ 120,\ 105,\ 110
+\]
+Misma media, misma desviación, mismo histograma. La evolución temporal solo existe en la primera.
+\[
+\boxed{\text{el orden temporal contiene información que la estadística estática no conserva}}
+\]
+\end{frame}
+
+\begin{frame}{Frecuencia de muestreo}
+La distancia entre observaciones ($\Delta t$): segundo, minuto, hora, turno, día, semana, mes.
+\vfill
+Si un fenómeno cambia cada 10 min y medimos 1 dato/día, no lo veremos.
+\[
+\boxed{\text{la frecuencia de observación limita qué comportamientos podemos detectar}}
+\]
+La agregación (p. ej. promedio diario) puede eliminar información. Depende de la pregunta.
+\end{frame}
+
+\begin{frame}{Componentes de una serie}
+\[
+\boxed{X_t = T_t + S_t + C_t + \varepsilon_t}
+\]
+\begin{columns}[T]
+\column{0.5\linewidth}
+\textbf{Tendencia $T_t$}: movimiento de fondo a largo plazo (desgaste, deterioro\ldots).\\[0.6em]
+\textbf{Estacionalidad $S_t$}: patrón que se repite con periodicidad \emph{fija} (diaria, semanal, por turno).
+\column{0.5\linewidth}
+\textbf{Ciclo $C_t$}: oscilación recurrente sin periodo estrictamente fijo.\\[0.6em]
+\textbf{Ruido $\varepsilon_t$}: lo que no atribuimos a las anteriores. No es "dato inútil".
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Rezagos (lags)}
+\[
+X_{t-1},\ X_{t-2},\ \dots,\ X_{t-k}\quad (k=\text{rezago})
+\]
+\begin{lstlisting}
+df["Tonelaje_lag1"]  = df["Tonelaje"].shift(1)
+df["Tonelaje_lag24"] = df["Tonelaje"].shift(24)
+\end{lstlisting}
+El rezago permite comparar el presente con el pasado. En el Módulo 4 se cuantifica
+esa relación (autocorrelación).
+\end{frame}
+
+\begin{frame}[fragile]{Diferencias}
+\[
+\Delta X_t = X_t - X_{t-1}
+\]
+\begin{lstlisting}
+df["Cambio"] = df["Tonelaje"].diff()
+\end{lstlisting}
+Serie original: \emph{¿cuál es el nivel?} \qquad Serie diferenciada: \emph{¿cuánto cambió?}
+\vfill
+$100,105,110,115,120$ (tendencia) $\Rightarrow$ diferencias $5,5,5,5$. La diferenciación será
+clave en estacionariedad y ARIMA.
+\end{frame}
+
+\begin{frame}[fragile]{Estadísticas móviles}
+\[
+\bar X_t^{(w)}=\frac{1}{w}\sum_{i=0}^{w-1}X_{t-i}
+\]
+\begin{lstlisting}
+df["media_movil"] = df["Tonelaje"].rolling(window=24).mean()
+df["std_movil"]   = df["Tonelaje"].rolling(window=24).std()
+\end{lstlisting}
+\begin{itemize}
+  \item media móvil $\rightarrow$ ¿cambió el nivel local?
+  \item desviación móvil $\rightarrow$ ¿cambió la variabilidad?
+\end{itemize}
+\idea{la ventana se interpreta en unidades del proceso (24 h, 168 h\ldots), no "porque se ve bonito"}
+\end{frame}
+
+\begin{frame}[fragile]{Suavizado exponencial}
+\[
+S_t=\alpha X_t+(1-\alpha)S_{t-1},\qquad 0<\alpha<1
+\]
+\begin{lstlisting}
+df["suave"] = df["Tonelaje"].ewm(alpha=0.2).mean()
+\end{lstlisting}
+$\alpha\approx1$: responde rápido a lo nuevo. $\alpha\ll1$: cambia lento.
+\idea{suavizar revela estructura, pero también elimina la variación rápida}
+Media móvil: ventana explícita. Suavizado exponencial: toda la historia con pesos decrecientes.
+\end{frame}
+
+\begin{frame}[fragile]{Descomposición}
+\[
+X_t=T_t+S_t+R_t \quad(\text{aditiva})
+\qquad
+X_t=T_t\cdot S_t\cdot R_t \quad(\text{multiplicativa})
+\]
+Aditiva: amplitud estacional aproximadamente constante. Multiplicativa: crece con el nivel.
+\begin{lstlisting}
+from statsmodels.tsa.seasonal import STL
+res = STL(serie.dropna(), period=24).fit()
+res.plot()
+\end{lstlisting}
+\code{period} = número de observaciones por periodo estacional (horario+diario $\Rightarrow 24$).
+\end{frame}
+
+\begin{frame}{¿Qué buscamos en la descomposición?}
+\begin{itemize}
+  \item Tendencia: ¿evolución lenta del nivel?
+  \item Estacionalidad: ¿patrón recurrente?
+  \item Residuo: ¿qué queda después de retirar esas estructuras?
+\end{itemize}
+\vfill
+\idea{una vez retirada tendencia y estacionalidad, ¿el residuo es ruido o todavía tiene estructura temporal?}
+Esa pregunta abre el Módulo 4.
+\end{frame}
+
+\begin{frame}
+\begin{recordar}
+\begin{enumerate}
+  \item El orden temporal contiene información.
+  \item La frecuencia de muestreo condiciona lo observable.
+  \item Componentes: tendencia, estacionalidad, ciclo, ruido.
+  \item Rezago: valor pasado $X_{t-k}$.
+  \item Diferencia: cambio $\Delta X_t=X_t-X_{t-1}$.
+  \item Estadísticas móviles: nivel y variabilidad locales.
+  \item Suavizar revela estructura pero pierde variación rápida.
+  \item Una serie se descompone (aditiva / multiplicativa).
+  \item El residuo no es necesariamente ruido: hay que comprobarlo.
+\end{enumerate}
+\end{recordar}
+\end{frame}
+
+\begin{frame}{Cierre y transición}
+\idea{una distribución describe qué valores aparecen; una serie temporal muestra cómo aparecen}
+\vfill
+Si $X_t$ parece relacionado con $X_{t-1}$: ¿cómo se cuantifica?
+Si media o variabilidad cambian: ¿se puede modelar directamente?
+\vfill
+\begin{center}
+\fl\ Módulo 4: ACF/PACF, estacionariedad, ADF/KPSS, transformaciones y diferenciación.
+\end{center}
+\end{frame}
+
+\end{document}

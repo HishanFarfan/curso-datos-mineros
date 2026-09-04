@@ -1,0 +1,139 @@
+% =====================================================================
+%  Preámbulo compartido — Beamer
+%  Curso: Análisis y Pronóstico de Datos Mineros con Python
+%
+%  Tema construido a mano sobre la base 'default' de Beamer:
+%  compila con cualquier distribución TeX moderna sin paquetes de
+%  tema externos (no requiere metropolis).
+%
+%  Cada deck de módulo hace:  \input{preambulo.tex}
+% =====================================================================
+\documentclass[11pt,aspectratio=169]{beamer}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noshorthands]{babel}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+
+% ---------------------------------------------------------------------
+%  Paleta
+% ---------------------------------------------------------------------
+\definecolor{azulmina}{HTML}{1F4E79}   % azul profundo
+\definecolor{cobre}{HTML}{B5651D}      % acento cobre
+\definecolor{griscarbon}{HTML}{2B2B2B}
+\definecolor{grissuave}{HTML}{EDEEF0}
+\definecolor{verdeok}{HTML}{2E7D32}
+\definecolor{rojoalerta}{HTML}{C62828}
+
+% ---------------------------------------------------------------------
+%  Tema visual (sobre 'default')
+% ---------------------------------------------------------------------
+\usetheme{default}
+\usefonttheme{professionalfonts}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{normal text}{fg=griscarbon}
+\setbeamercolor{structure}{fg=azulmina}
+\setbeamercolor{alerted text}{fg=rojoalerta}
+\setbeamercolor{frametitle}{fg=azulmina}
+\setbeamerfont{frametitle}{series=\bfseries,size=\large}
+\setbeamertemplate{frametitle}{%
+  \vskip6pt%
+  \usebeamerfont{frametitle}\usebeamercolor[fg]{frametitle}\insertframetitle%
+  \vskip2pt{\color{cobre}\hrule height 1.1pt}%
+}
+\setbeamertemplate{itemize items}[circle]
+\setbeamertemplate{itemize subitem}[triangle]
+\setbeamercolor{itemize item}{fg=cobre}
+\setbeamercolor{itemize subitem}{fg=cobre}
+\setbeamercolor{enumerate item}{fg=cobre}
+
+\setbeamercolor{block title}{bg=azulmina,fg=white}
+\setbeamercolor{block body}{bg=grissuave,fg=griscarbon}
+\setbeamercolor{block title alerted}{bg=rojoalerta,fg=white}
+\setbeamercolor{block title example}{bg=verdeok,fg=white}
+
+% Barra inferior compacta
+\setbeamertemplate{footline}{%
+  \hbox{%
+    \begin{beamercolorbox}[wd=.62\paperwidth,ht=2.4ex,dp=1ex,leftskip=1em]{author in head/foot}%
+      \color{white}\scriptsize Análisis y Pronóstico de Datos Mineros con Python%
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.38\paperwidth,ht=2.4ex,dp=1ex,rightskip=1em]{title in head/foot}%
+      \color{white}\scriptsize\hfill\insertshortsubtitle\ \ \textbullet\ \ \insertframenumber/\inserttotalframenumber%
+    \end{beamercolorbox}}%
+  \vskip0pt%
+}
+\setbeamercolor{author in head/foot}{bg=azulmina}
+\setbeamercolor{title in head/foot}{bg=cobre}
+
+% ---------------------------------------------------------------------
+%  Código Python
+% ---------------------------------------------------------------------
+\lstdefinestyle{py}{
+  language=Python,
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{azulmina}\bfseries,
+  stringstyle=\color{cobre},
+  commentstyle=\color{verdeok}\itshape,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  columns=flexible,
+  keepspaces=true,
+  frame=leftline,
+  framerule=1.4pt,
+  rulecolor=\color{cobre},
+  xleftmargin=1.2em,
+  literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+           {ñ}{{\~n}}1 {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1
+           {Ú}{{\'U}}1 {Ñ}{{\~N}}1
+}
+\lstset{style=py}
+\newcommand{\code}[1]{\texttt{\small #1}}
+
+% ---------------------------------------------------------------------
+%  Ayudas
+% ---------------------------------------------------------------------
+\newcommand{\idea}[1]{%
+  \begin{center}\setlength{\fboxsep}{8pt}%
+  \colorbox{grissuave}{\parbox{0.9\linewidth}{\centering\color{azulmina}\bfseries #1}}%
+  \end{center}}
+\newcommand{\ojo}[1]{{\color{rojoalerta}\textbf{Ojo:} #1}}
+\newenvironment{recordar}{\begin{block}{Qué deberías recordar}}{\end{block}}
+
+% flecha de flujo (segura en modo texto y modo matemático)
+\newcommand{\fl}{\ensuremath{\;{\color{cobre}\rightarrow}\;}}
+
+% cadena de flujo (roadmap): se escala para caber en el ancho de la diapositiva
+\newcommand{\ruta}[1]{\par\vskip2pt\begin{center}%
+  \resizebox{0.97\linewidth}{!}{\ensuremath{\displaystyle #1}}%
+  \end{center}\vskip2pt}
+
+% ---------------------------------------------------------------------
+%  Metadatos
+% ---------------------------------------------------------------------
+\title[Datos Mineros con Python]{Análisis y Pronóstico de Datos Mineros con Python}
+\author{}
+\date{16 h \textbullet\ 8 clases \textbullet\ Google Colab}
+
+% Portada estándar del módulo:  \portada{N}{Título del módulo}
+\newcommand{\portada}[2]{%
+  \subtitle[Módulo #1]{Módulo #1 \textemdash\ #2}%
+  \begin{frame}[plain]
+    \vfill
+    {\color{azulmina}\rule{\linewidth}{2pt}}\\[0.4em]
+    {\large\bfseries\color{cobre}Módulo #1}\\[0.3em]
+    {\LARGE\bfseries\color{azulmina} #2}\\[0.6em]
+    {\color{azulmina}\rule{\linewidth}{2pt}}\\[1.2em]
+    \textit{Análisis y Pronóstico de Datos Mineros con Python}\\[0.2em]
+    \footnotesize Apuntes + notebook de Google Colab
+    \vfill
+  \end{frame}}

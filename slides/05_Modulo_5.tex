@@ -1,0 +1,188 @@
+\input{preambulo.tex}
+
+\begin{document}
+\portada{5}{Modelamiento de series temporales}
+
+\begin{frame}{Objetivo del módulo}
+
+\ruta{
+AR\fl MA\fl ARMA\fl ARIMA\fl SARIMA\fl \text{selección}\fl\text{ajuste}\fl\text{residuos}
+}
+\idea{usar la estructura del pasado para representar el comportamiento presente de la serie}
+\[
+X_t=\hat X_t+\varepsilon_t\qquad(\text{estructura predecible}+\text{componente impredecible})
+\]
+\end{frame}
+
+\begin{frame}{Modelo autorregresivo AR}
+\[
+AR(1):\quad X_t=c+\phi_1 X_{t-1}+\varepsilon_t
+\qquad
+AR(p):\quad X_t=c+\sum_{i=1}^{p}\phi_i X_{t-i}+\varepsilon_t
+\]
+$\phi_1$ mide la \textbf{persistencia}:
+\begin{itemize}
+  \item $\phi_1\approx0$: el valor anterior aporta poco;
+  \item $\phi_1$ alto ($0.9$): fuerte inercia, una perturbación tarda en desaparecer;
+  \item $\phi_1<0$: comportamiento alternante.
+\end{itemize}
+$p$ = cuántos valores pasados de la serie participan. La \textbf{PACF} ayuda a proponerlo.
+\end{frame}
+
+\begin{frame}{Modelo de media móvil MA}
+\[
+MA(1):\quad X_t=\mu+\varepsilon_t+\theta_1\varepsilon_{t-1}
+\qquad
+MA(q):\quad X_t=\mu+\varepsilon_t+\sum_{j=1}^{q}\theta_j\varepsilon_{t-j}
+\]
+\ojo{no es la media móvil de \code{rolling().mean()}.} El valor actual depende de
+\textbf{errores} pasados: el sistema conserva el efecto de \emph{shocks} recientes.
+La \textbf{ACF} ayuda a proponer $q$.
+\end{frame}
+
+\begin{frame}{ARMA y ARIMA}
+\[
+ARMA(p,q):\quad X_t=c+\sum_{i=1}^{p}\phi_i X_{t-i}+\varepsilon_t+\sum_{j=1}^{q}\theta_j\varepsilon_{t-j}
+\]
+ARMA requiere una serie \textbf{aproximadamente estacionaria} (por eso el Módulo 4).
+\[
+\boxed{ARIMA(p,d,q)}\qquad I = \text{diferenciación para lograr estacionariedad}
+\]
+$ARIMA(p,0,q)\equiv ARMA(p,q)$. El $d$ viene del diagnóstico de M4, no se elige al azar.
+\end{frame}
+
+\begin{frame}{Identificación con ACF/PACF (casos ideales)}
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+& ACF & PACF\\
+\midrule
+AR($p$) puro & decae gradualmente & corta cerca de $p$\\
+MA($q$) puro & corta cerca de $q$ & decae gradualmente\\
+\bottomrule
+\end{tabular}
+\end{center}
+\vfill
+\ojo{en datos reales los patrones rara vez son perfectos.} ACF/PACF generan
+\emph{candidatos}, no una regla mecánica.
+\end{frame}
+
+\begin{frame}{Selección: ajuste vs. complejidad}
+\[
+AIC=\text{penalización por mal ajuste}+\text{penalización por complejidad}
+\]
+BIC: misma lógica, penaliza más la complejidad. \emph{Menor} suele ser preferible
+\textbf{entre modelos comparables}.
+\vfill
+\ojo{AIC/BIC \textbf{no} miden capacidad predictiva fuera de muestra.} Eso se evalúa en M6.
+\[
+\text{M5: AIC/BIC preseleccionan}\fl\text{M6: desempeño fuera de muestra decide}
+\]
+\end{frame}
+
+\begin{frame}[fragile]{Ajuste en Python}
+\begin{lstlisting}
+from statsmodels.tsa.arima.model import ARIMA
+r = ARIMA(serie, order=(1,1,1)).fit()
+print(r.summary())          # coeficientes, AIC, BIC, ...
+
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+s = SARIMAX(serie, order=(1,1,1), seasonal_order=(1,1,0,24)).fit()
+\end{lstlisting}
+Nos concentramos en: parámetros, AIC/BIC y \textbf{residuos}.
+Un $\hat\phi_1=0.78$ se interpreta como persistencia temporal, no causalidad.
+\end{frame}
+
+\begin{frame}[fragile]{Residuos: la verdadera prueba}
+\[
+e_t=X_t-\hat X_t
+\]
+Si el modelo capturó la estructura sistemática, $e_t$ se comporta como \textbf{ruido}:
+media $\approx0$, sin patrón temporal, sin autocorrelación importante, varianza estable.
+\begin{lstlisting}
+res = r.resid
+plot_acf(res.dropna(), lags=40)
+r.plot_diagnostics(figsize=(10,8))
+\end{lstlisting}
+\[
+\boxed{\text{estructura en residuos = estructura faltante en el modelo}}
+\]
+\end{frame}
+
+\begin{frame}[fragile]{Test de Ljung--Box}
+\[
+H_0:\ \text{no hay autocorrelación conjunta hasta ciertos rezagos}
+\]
+\begin{lstlisting}
+from statsmodels.stats.diagnostic import acorr_ljungbox
+acorr_ljungbox(res.dropna(), lags=[10, 20], return_df=True)
+\end{lstlisting}
+Queremos $p>0.05$ (residuos compatibles con ausencia de dependencia).
+Si $p<0.05$: queda estructura $\rightarrow$ revisar $p$, $q$, $d$, estacionalidad, transformación.
+\end{frame}
+
+\begin{frame}{SARIMA}
+\[
+SARIMA(p,d,q)(P,D,Q)_m
+\]
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+$(p,d,q)$ & componente no estacional\\
+$(P,D,Q)$ & componente estacional (AR, diferenciación, MA)\\
+$m$ & observaciones por ciclo estacional\\
+\bottomrule
+\end{tabular}
+\end{center}
+Ej.: horario con ciclo diario $\Rightarrow SARIMA(1,1,1)(1,1,0)_{24}$.
+\code{SARIMAX} en Python permite además variables exógenas (la "X").
+\end{frame}
+
+\begin{frame}[fragile]{Auto-ARIMA}
+\begin{lstlisting}
+from pmdarima import auto_arima
+modelo = auto_arima(serie, seasonal=True, m=24, trace=True)
+\end{lstlisting}
+Es una \textbf{búsqueda automática} entre modelos estadísticos comparando criterios.
+No es inteligencia artificial.
+\idea{automatización $\neq$ criterio}
+Sigue siendo necesario preparar datos, verificar estacionalidad, revisar residuos y validar el forecast.
+\end{frame}
+
+\begin{frame}{Errores frecuentes}
+\begin{itemize}
+  \item \code{modelo.fit()} $\Rightarrow$ "modelo terminado" (falta revisar residuos);
+  \item elegir por $R^2$;
+  \item "modelo más complejo = mejor";
+  \item probar $ARIMA(1,1,1),(2,1,1),(3,1,1),\dots$ sin criterio;
+  \item creer que auto-ARIMA "decide por mí".
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{recordar}
+\begin{enumerate}
+  \item AR usa valores pasados; MA usa errores pasados; ARMA combina.
+  \item ARIMA agrega diferenciación: $p$ rezagos AR, $d$ diferencias, $q$ rezagos MA.
+  \item SARIMA incorpora estructura estacional $(P,D,Q)_m$.
+  \item ACF/PACF generan candidatos, no deciden.
+  \item AIC/BIC comparan ajuste y complejidad (no predicción).
+  \item Auto-ARIMA automatiza la búsqueda, no el análisis.
+  \item Siempre revisar residuos (ruido blanco) y Ljung--Box ($p>0.05$).
+  \item Buen ajuste $\neq$ buen pronóstico.
+\end{enumerate}
+\end{recordar}
+\end{frame}
+
+\begin{frame}{Cierre y transición}
+Resultado del M5 (prudente):
+\[
+\boxed{\text{tenemos uno o varios modelos estadísticamente razonables}}
+\]
+\begin{center}
+\fl\ Módulo 6: \emph{¿qué ocurre cuando intentamos predecir datos que el modelo nunca vio?}
+\end{center}
+Train/test cronológico, horizonte, intervalos, MAE/RMSE/MAPE, naïve, backtesting.
+\end{frame}
+
+\end{document}

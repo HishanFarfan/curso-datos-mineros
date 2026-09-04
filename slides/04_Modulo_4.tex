@@ -1,0 +1,196 @@
+\input{preambulo.tex}
+
+\begin{document}
+\portada{4}{Dependencia temporal y diagnóstico de series}
+
+\begin{frame}{Objetivo del módulo}
+
+\ruta{
+\text{dependencia temporal}\fl\text{estacionariedad}\fl\text{diagnóstico}\fl\text{transformación}\fl\text{serie preparada}
+}
+\idea{¿La serie que tengo puede modelarse directamente o debo transformarla primero?}
+El producto del módulo es una \textbf{decisión documentada}: transformación $+\ d\ +\ D\ +\ m$.
+\end{frame}
+
+\begin{frame}{Autocorrelación}
+\[
+\rho_k=\operatorname{Corr}(X_t,X_{t-k})
+\]
+\idea{autocorrelación = cuánto se parece la serie a su propio pasado}
+El conjunto $\rho_1,\rho_2,\rho_3,\dots$ forma la \textbf{ACF} (Función de Autocorrelación).
+Ejemplo: $\rho_1=0.85,\ \rho_2=0.72,\ \rho_3=0.58$ $\Rightarrow$ dependencia que decae.
+\end{frame}
+
+\begin{frame}[fragile]{ACF: interpretación}
+\begin{lstlisting}
+from statsmodels.graphics.tsaplots import plot_acf
+plot_acf(df["Tonelaje"].dropna(), lags=40)
+\end{lstlisting}
+\begin{itemize}
+  \item barras dentro de las bandas $\rightarrow$ compatible con cero;
+  \item barras fuera $\rightarrow$ autocorrelación distinta de cero en ese rezago;
+  \item importa el \textbf{patrón general}, no cada barra;
+  \item ruido blanco: $\rho_k\approx0$ para $k>0$ (ideal para \emph{residuos});
+  \item picos en $k=24,48,72$ $\rightarrow$ estacionalidad diaria.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Autocorrelación parcial (PACF)}
+¿La relación $X_t\leftrightarrow X_{t-2}$ es directa, o pasa por $X_{t-1}$?
+\vfill
+La PACF mide la relación con $X_{t-k}$ \textbf{descontando} los rezagos intermedios:
+\emph{¿cuánta información nueva aporta ese rezago?}
+\begin{lstlisting}
+from statsmodels.graphics.tsaplots import plot_pacf
+plot_pacf(df["Tonelaje"].dropna(), lags=40)
+\end{lstlisting}
+ACF: relaciones directas e indirectas. PACF: aísla la directa.
+\end{frame}
+
+\begin{frame}{Estacionariedad (débil)}
+Queremos que la estructura estadística sea estable:
+\[
+E[X_t]=\mu,\qquad \operatorname{Var}(X_t)=\sigma^2,\qquad
+\operatorname{Cov}(X_t,X_{t-k})\ \text{depende de }k,\ \text{no de }t
+\]
+\idea{estacionariedad = variabilidad estadísticamente estable, NO ausencia de fluctuaciones}
+Una serie puede fluctuar mucho alrededor de una media constante y ser estacionaria.
+\end{frame}
+
+\begin{frame}{No estacionariedad: dos formas}
+\begin{columns}[T]
+\column{0.5\linewidth}
+\textbf{Por la media}\\
+$X_t=100+2t+\varepsilon_t$: $E[X_t]$ cambia con el tiempo.\\
+Herramienta: \idea{diferenciación}
+\column{0.5\linewidth}
+\textbf{Por la varianza}\\
+$100\pm2 \to 100\pm5 \to 100\pm20$: $\operatorname{Var}(X_t)$ crece.\\
+Herramienta: \idea{log / Box-Cox}
+\end{columns}
+\vfill
+Media y varianza son problemas \textbf{distintos}; podemos necesitar una o ambas.
+\end{frame}
+
+\begin{frame}[fragile]{Pruebas ADF y KPSS}
+\begin{lstlisting}
+from statsmodels.tsa.stattools import adfuller, kpss
+adfuller(serie.dropna())[1]                 # p-value ADF
+kpss(serie.dropna(), regression="c")[1]     # p-value KPSS
+\end{lstlisting}
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{ADF} & $H_0$: raíz unitaria (no estacionaria). $p$ pequeño $\rightarrow$ estacionaria.\\
+\textbf{KPSS} & $H_0$: estacionaria. $p$ pequeño $\rightarrow$ \emph{no} estacionaria.\\
+\bottomrule
+\end{tabular}
+\end{center}
+\ojo{las reglas mentales de ADF y KPSS son \textbf{opuestas}.}
+\end{frame}
+
+\begin{frame}{Combinar la evidencia}
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+ADF & KPSS & Interpretación inicial\\
+\midrule
+rechaza $H_0$ & no rechaza & consistente con estacionariedad\\
+no rechaza & rechaza $H_0$ & consistente con no estacionariedad\\
+no rechaza & no rechaza & ambiguo\\
+rechaza $H_0$ & rechaza $H_0$ & estructura más compleja\\
+\bottomrule
+\end{tabular}
+\end{center}
+\vfill
+Ninguna prueba reemplaza el gráfico, las estadísticas móviles y la ACF.
+\end{frame}
+
+\begin{frame}[fragile]{Diferenciación regular y estacional}
+\[
+\Delta X_t = X_t-X_{t-1}\ (\text{orden }d)
+\qquad
+X_t-X_{t-m}\ (\text{orden }D,\ \text{periodo }m)
+\]
+\begin{lstlisting}
+serie.diff()        # d = 1
+serie.diff(24)      # D = 1, m = 24
+\end{lstlisting}
+\idea{usar el mínimo grado de diferenciación necesario}
+Sobrediferenciar convierte señal en ruido y complica el modelo.
+\end{frame}
+
+\begin{frame}[fragile]{Transformaciones de varianza}
+\[
+Y_t=\log X_t
+\qquad
+Y(\lambda)=\frac{X^\lambda-1}{\lambda}\ (\text{Box-Cox};\ \lambda=0 \Rightarrow \log)
+\]
+\begin{lstlisting}
+serie_log = np.log(serie)             # requiere X_t > 0
+from scipy.stats import boxcox
+serie_bc, lam = boxcox(serie.dropna())
+\end{lstlisting}
+El log trabaja con cambios \emph{relativos}: $\log(110)-\log(100)\approx\log(1100)-\log(1000)$.
+\end{frame}
+
+\begin{frame}{Flujo típico y hoja de decisión}
+
+\ruta{
+X_t \fl \log X_t \fl \Delta \fl \Delta_{24} \fl \text{re-evaluar estacionariedad}
+}
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Tendencia / Estacionalidad ($m$) & \dots\\
+Varianza estable & Sí / No\\
+ACF persistente & Sí / No\\
+ADF & $p=\dots$\\
+Transformación & ninguna / log / otra\\
+$d$ , $D$ , $m$ & \dots\\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{frame}
+
+\begin{frame}{Errores conceptuales frecuentes}
+\begin{itemize}
+  \item creer que "se ve plana" $\Rightarrow$ estacionaria (o "fluctúa mucho" $\Rightarrow$ no);
+  \item confundir autocorrelación alta \emph{por tendencia} con dinámica AR útil;
+  \item diferenciar hasta que "el gráfico parezca ruido";
+  \item aplicar \code{log}, \code{diff}, \code{diff(24)} automáticamente a cualquier serie.
+\end{itemize}
+\vfill
+\[
+\boxed{\text{observar}\fl\text{diagnosticar}\fl\text{transformar}\fl\text{volver a diagnosticar}}
+\]
+\end{frame}
+
+\begin{frame}
+\begin{recordar}
+\begin{enumerate}
+  \item Una serie puede depender de sus valores anteriores.
+  \item ACF: correlación con rezagos. PACF: relación directa con cada rezago.
+  \item Estacionariedad = estabilidad de la estructura, no ausencia de fluctuación.
+  \item ADF y KPSS son complementarias y con reglas opuestas.
+  \item Tendencia $\rightarrow$ diferenciación regular.
+  \item Estacionalidad $\rightarrow$ diferenciación estacional.
+  \item Varianza dependiente del nivel $\rightarrow$ log / Box-Cox.
+  \item Después de transformar, \textbf{siempre} volver a diagnosticar.
+\end{enumerate}
+\end{recordar}
+\end{frame}
+
+\begin{frame}{Cierre y transición}
+Al terminar M4 tenemos, por ejemplo:
+\[
+\boxed{\log(X_t),\quad d=1,\quad D=1,\quad m=24}
+\]
+\begin{center}
+M4: \emph{¿la serie está preparada para modelarse?}\\[0.3em]
+\fl\quad M5: \emph{¿cómo usamos su dependencia temporal para construir un modelo?}
+\end{center}
+AR $\rightarrow$ MA $\rightarrow$ ARMA $\rightarrow$ ARIMA $\rightarrow$ SARIMA.
+\end{frame}
+
+\end{document}

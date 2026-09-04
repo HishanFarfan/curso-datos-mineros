@@ -1,0 +1,145 @@
+\input{preambulo.tex}
+
+\begin{document}
+\portada{8}{Taller integrador: de los datos a una decisión}
+
+\begin{frame}{Objetivo del módulo}
+
+\ruta{
+\text{problema}\fl\text{datos}\fl\text{preparación}\fl\text{análisis}\fl\text{modelamiento}\fl\text{pronóstico}\fl\text{anomalías}\fl\text{decisión}
+}
+\idea{¿Qué dicen los datos, qué tan confiable es el resultado y qué recomendaría hacer?}
+El objetivo no es ejecutar muchas funciones, sino \textbf{decidir e interpretar}.
+\end{frame}
+
+\begin{frame}{Del ejercicio académico al problema profesional}
+En la industria nadie pide "calcule la ACF". Piden:
+\begin{itemize}
+  \item "creemos que el proceso se está comportando distinto";
+  \item "necesitamos anticipar esta variable";
+  \item "tenemos meses de datos, ¿se puede hacer algo útil?"
+\end{itemize}
+\vfill
+Mala pregunta: \emph{¿cuál es el mejor ARIMA?}\\
+Buena pregunta: \emph{¿con qué precisión podemos anticipar el tonelaje las próximas 8 h?}
+\end{frame}
+
+\begin{frame}{Estructura del notebook}
+\begin{columns}[T]
+\column{0.5\linewidth}
+\begin{enumerate}
+  \item[0.] Problema
+  \item Carga y preparación
+  \item Exploración estadística
+  \item Estructura temporal
+  \item Diagnóstico
+\end{enumerate}
+\column{0.5\linewidth}
+\begin{enumerate}
+  \setcounter{enumi}{4}
+  \item Modelamiento
+  \item Pronóstico y validación
+  \item Anomalías
+  \item Conclusión operacional
+\end{enumerate}
+\end{columns}
+\vfill
+Cada bloque recupera un módulo del curso.
+\end{frame}
+
+\begin{frame}{Paso 0 — Comprender antes de programar}
+Antes de ejecutar Python, escribir:
+\begin{itemize}
+  \item Variable analizada, unidad, frecuencia temporal, periodo cubierto;
+  \item Pregunta operacional concreta.
+\end{itemize}
+\vfill
+Y para la limpieza: documentar \textbf{qué se hizo y por qué}.
+\idea{dato raro $\neq$ dato incorrecto}
+\end{frame}
+
+\begin{frame}{De una métrica a una recomendación}
+\[
+MAE=50\ \text{t/h} \quad\text{con variable} \sim 1500\ \text{t/h}
+\quad\Rightarrow\quad \approx 3.3\%
+\]
+\begin{itemize}
+  \item \textbf{Dato}: serie horaria de producción;
+  \item \textbf{Métrica}: $MAE=45$ t/h; supera al naïve en $\sim25\%$;
+  \item \textbf{Hallazgo}: hay estructura temporal aprovechable;
+  \item \textbf{Interpretación}: pronóstico de corto plazo viable;
+  \item \textbf{Acción}: apoyo a planificación y monitoreo, con supervisión fuera de banda.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{La lógica de justificación}
+\[
+\boxed{\text{evidencia}\fl\text{decisión}}
+\]
+\begin{itemize}
+  \item ACF con picos en múltiplos de 24 $\rightarrow$ se consideró periodicidad diaria;
+  \item ADF no indicó estacionariedad $\rightarrow$ se aplicó diferenciación;
+  \item el modelo A presentó autocorrelación residual $\rightarrow$ se descartó;
+  \item el modelo B superó al naïve $\rightarrow$ se seleccionó;
+  \item residuos persistentes $\rightarrow$ posible cambio de régimen.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{El entregable}
+\[
+\boxed{\text{notebook reproducible} \;+\; \text{informe de una página}}
+\]
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Objetivo & ¿Qué se quería responder?\\
+Datos & Periodo, frecuencia, limpieza y por qué\\
+Método & Diagnóstico, modelos comparados, validación\\
+Resultados & MAE/RMSE, mejora sobre naïve, residuos, anomalías\\
+Recomendación & Uso, horizonte útil, límites, qué revisar\\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{frame}
+
+\begin{frame}{Errores a evitar}
+\begin{columns}[T]
+\column{0.5\linewidth}
+\begin{itemize}
+  \item modelar sin mirar los datos;
+  \item eliminar outliers automáticamente;
+  \item train/test aleatorio;
+  \item elegir modelo solo por AIC.
+\end{itemize}
+\column{0.5\linewidth}
+\begin{itemize}
+  \item reportar únicamente métricas;
+  \item confundir anomalía con causa;
+  \item forecast sin incertidumbre;
+  \item recomendar lo que los datos no respaldan.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{El producto final del curso}
+\begin{recordar}
+"Puedo recibir una base histórica de un proceso, prepararla en Python, caracterizar su
+comportamiento, identificar si existe estructura temporal aprovechable, construir y
+evaluar un modelo de pronóstico, detectar desviaciones respecto de lo esperado y
+comunicar los resultados \textbf{con sus limitaciones}."
+\end{recordar}
+\vfill
+Sin prometer machine learning ni capacidades fuera del alcance definido.
+\end{frame}
+
+\begin{frame}{Cierre del curso}
+
+\ruta{
+\boxed{\text{datos}\fl\text{información}\fl\text{modelo}\fl\text{evidencia}\fl\text{decisión}}
+}
+\vfill
+El taller empieza con una base de datos y termina con una
+\textbf{recomendación respaldada por evidencia}.
+\end{frame}
+
+\end{document}

@@ -1,0 +1,92 @@
+\input{preambulo.tex}
+
+\begin{document}
+\subtitle[Presentación]{Presentación general del curso}
+
+\begin{frame}[plain]
+  \vfill
+  {\color{azulmina}\rule{\linewidth}{2pt}}\\[0.6em]
+  {\LARGE\bfseries\color{azulmina} Análisis y Pronóstico de Datos Mineros con Python}\\[0.6em]
+  {\color{azulmina}\rule{\linewidth}{2pt}}\\[1.2em]
+  \large Apuntes extendidos por módulo\\[0.4em]
+  \normalsize online vía Zoom \textbullet\ 16 horas \textbullet\ 8 clases de 2 h \textbullet\ Google Colab
+  \vfill
+\end{frame}
+
+\begin{frame}{Calendario propuesto}
+\small
+\begin{center}
+\begin{tabular}{cll}
+\toprule
+Clase & Fecha & Módulo\\
+\midrule
+1 & Jue 10 sep & M1 — Preparación de datos con Python\\
+2 & Vie 11 sep & M2 — Estadística aplicada a datos de proceso\\
+\multicolumn{3}{c}{\textit{— receso —}}\\
+3 & Lun 21 sep & M3 — Introducción a las series temporales\\
+4 & Mar 22 sep & M4 — Dependencia temporal y diagnóstico de series\\
+5 & Jue 24 sep & M5 — Modelamiento de series temporales\\
+6 & Lun 28 sep & M6 — Pronóstico y evaluación de modelos\\
+7 & Mar 29 sep & M7 — Detección de anomalías y cambios en el proceso\\
+8 & Jue 1 oct & M8 — Taller integrador: de los datos a una decisión\\
+\bottomrule
+\end{tabular}
+\end{center}
+\vspace{0.4em}
+Horario: 20:00 a 22:00 h.
+\end{frame}
+
+\begin{frame}{Objetivos del curso}
+\begin{enumerate}
+  \item Preparar y estructurar datos mineros en Python, listos para análisis temporal.
+  \item Construir y evaluar modelos de series temporales y pronóstico según el
+        comportamiento de los datos.
+  \item Diagnosticar comportamientos anómalos y cambios de régimen, con lectura operacional.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Encadenamiento pedagógico}
+\footnotesize
+\[
+\begin{aligned}
+&\text{M1 dataset limpio}\fl \text{M2 descripción y problema de independencia}\fl \text{M3 estructura temporal}\\
+\fl\ &\text{M4 diagnóstico y transformaciones}\fl \text{M5 modelamiento}\fl \text{M6 pronóstico y validación}\\
+\fl\ &\text{M7 vigilancia y anomalías}\fl \text{M8 integración y decisión}
+\end{aligned}
+\]
+\vspace{0.6em}
+M1 y M2 forman el bloque previo al receso: una unidad autónoma que cierra con el
+\emph{problema de la independencia} de las observaciones. Al volver, M3 introduce la
+temporalidad y la progresión continúa hasta el taller.
+\end{frame}
+
+\begin{frame}{Alcance metodológico}
+Métodos estadísticos \textbf{clásicos e interpretables} para series temporales:
+ARIMA/SARIMA, validación temporal y detección estadística de anomalías.
+\vfill
+\textbf{No} se requiere análisis espectral como contenido principal, ni machine
+learning / deep learning, para cumplir los objetivos.
+\vfill
+
+\ruta{
+\boxed{\text{entender los datos}\fl\text{diagnosticar}\fl\text{modelar}\fl\text{validar}\fl\text{interpretar}\fl\text{decidir}}
+}
+\end{frame}
+
+\begin{frame}{Materiales del curso}
+\begin{itemize}
+  \item \textbf{Apuntes} extendidos por módulo (Markdown).
+  \item \textbf{Diapositivas} Beamer (una por módulo).
+  \item \textbf{Notebooks} de Google Colab (uno por módulo) + taller integrador.
+  \item \textbf{Dataset} sintético de planta concentradora:
+    \begin{itemize}
+      \item \code{datos\_proceso\_planta.csv} — versión "de campo" (con problemas de calidad);
+      \item \code{datos\_proceso\_planta\_LIMPIO.csv} — respaldo ya limpio;
+      \item \code{generar\_dataset.py} — reproducible, con semilla fija.
+    \end{itemize}
+\end{itemize}
+\vfill
+Filosofía: no se ejecutan celdas porque sí, sino para responder preguntas concretas.
+\end{frame}
+
+\end{document}

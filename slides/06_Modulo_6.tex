@@ -1,0 +1,164 @@
+\input{preambulo.tex}
+
+\begin{document}
+\portada{6}{Pronóstico y evaluación de modelos}
+
+\begin{frame}{Objetivo del módulo}
+
+\ruta{
+\text{horizonte}\fl\text{train/test temporal}\fl\text{forecast}\fl\text{incertidumbre}\fl\text{métricas}\fl\text{baseline}\fl\text{backtesting}
+}
+\idea{¿El modelo que construimos realmente predice bien datos futuros?}
+Un modelo puede describir muy bien el pasado y fallar al pronosticar.
+\end{frame}
+
+\begin{frame}[fragile]{La regla temporal fundamental}
+\[
+\underbrace{X_1,\dots,X_{900}}_{\text{train (pasado)}}\qquad
+\underbrace{X_{901},\dots,X_{1000}}_{\text{test (futuro no visto)}}
+\]
+\ojo{nada de \code{train\_test\_split} aleatorio.} Entrenar con diciembre y evaluar
+en octubre es usar el futuro para predecir el pasado.
+\begin{lstlisting}
+n_train = int(len(serie) * 0.8)
+train, test = serie.iloc[:n_train], serie.iloc[n_train:]
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}{Horizonte de pronóstico}
+$h$ = cuántos periodos hacia adelante. Datos horarios: $h=8$ (turno), $h=168$ (semana).
+\vfill
+\idea{el error suele crecer con el horizonte}
+$\hat X_{t+1}$ es más fácil que $\hat X_{t+100}$: las predicciones lejanas dependen cada
+vez más de información estimada. La pregunta correcta: \emph{¿cuánto adelante necesita
+realmente la operación?}
+\end{frame}
+
+\begin{frame}[fragile]{Predicción puntual e intervalo}
+\begin{lstlisting}
+pred = resultado.get_forecast(steps=len(test))
+fc = pred.predicted_mean          # predicción puntual
+ci = pred.conf_int()              # banda del pronóstico
+\end{lstlisting}
+$\hat X_{t+1}=1500$ con intervalo $[1450,1550]$ dice mucho más que solo "$1500$".
+\vfill
+\textbf{IC vs IP}: el intervalo de confianza es para un parámetro / valor medio;
+el \emph{intervalo de predicción} es para una observación futura (más ancho).
+La banda se ensancha con $h$.
+\end{frame}
+
+\begin{frame}{Métricas de error}
+\[
+MAE=\frac{1}{n}\sum|y_t-\hat y_t|
+\qquad
+RMSE=\sqrt{\frac{1}{n}\sum (y_t-\hat y_t)^2}
+\]
+\[
+MAPE=\frac{100}{n}\sum\left|\frac{y_t-\hat y_t}{y_t}\right|
+\]
+\begin{itemize}
+  \item MAE: magnitud media, misma unidad, muy interpretable;
+  \item RMSE: penaliza más los errores grandes ($RMSE\gg MAE$ $\Rightarrow$ hay fallas grandes);
+  \item MAPE: porcentual, pero \textbf{explota} cuando $y_t\approx0$ (detenciones, producción baja).
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Baseline naïve}
+\[
+\hat X_{t+1}=X_t
+\qquad\text{o estacional}\qquad
+\hat X_t=X_{t-m}
+\]
+\begin{lstlisting}
+naive     = pd.Series(train.iloc[-1], index=test.index)
+naive_est = serie.shift(24)
+\end{lstlisting}
+\[
+\boxed{\text{un modelo complejo debe superar una referencia simple}}
+\]
+Si el ARIMA no supera al naïve: el problema es difícil, el modelo está mal
+especificado, o la persistencia domina.
+\end{frame}
+
+\begin{frame}[fragile]{Backtesting walk-forward}
+Una sola partición puede engañar (¿ese 20\% final fue fácil o difícil?).
+\begin{lstlisting}
+historia = list(train); predicciones = []
+for observado in test:
+    ajuste = ARIMA(historia, order=(2,1,1)).fit()
+    predicciones.append(ajuste.forecast(1)[0])
+    historia.append(observado)
+\end{lstlisting}
+\textbf{Ventana expansiva}: el train crece. \textbf{Ventana deslizante}: tamaño fijo,
+útil si el proceso cambia de régimen.
+\end{frame}
+
+\begin{frame}{Qué entrega el backtesting}
+Errores en múltiples momentos $e_1,e_2,\dots,e_n$: error medio, dispersión, peores casos,
+error por periodo, estabilidad temporal del desempeño.
+\vfill
+\begin{center}
+\begin{tabular}{rr}
+\toprule
+Horizonte & MAE\\
+\midrule
+1 h & 25\\
+8 h & 65\\
+24 h & 130\\
+\bottomrule
+\end{tabular}
+\end{center}
+\emph{¿Hasta qué horizonte el pronóstico sigue siendo operacionalmente útil?}
+\end{frame}
+
+\begin{frame}{Sesgo del pronóstico}
+\[
+ME=\frac{1}{n}\sum (y_t-\hat y_t)
+\]
+$ME>0$: el modelo subestima. $ME<0$: sobrestima. Un MAE pequeño puede ocultar un
+sesgo sistemático (p. ej. subestimar $5\%$ la demanda energética $\to$ falta de capacidad).
+\idea{no basta con medir cuánto falla; importa cómo falla}
+\end{frame}
+
+\begin{frame}{Selección final}
+\[
+\text{M5: AIC/BIC preseleccionan}\fl\text{M6: backtesting decide}
+\]
+No siempre el menor error: también estabilidad, complejidad, costo, actualización,
+interpretabilidad y magnitud \emph{real} de la mejora.
+\[
+\boxed{\text{mejora estadística del forecast}\neq\text{mejora operacional relevante}}
+\]
+Bajar MAE de $100$ a $20$ cambia una decisión; de $50.1$ a $49.9$, probablemente no.
+\end{frame}
+
+\begin{frame}
+\begin{recordar}
+\begin{enumerate}
+  \item Buen ajuste $\neq$ buen pronóstico.
+  \item El test representa futuro no observado: nada de mezcla aleatoria.
+  \item El horizonte importa ($h=1 \neq h=24$).
+  \item La predicción puntual va con incertidumbre.
+  \item MAE (magnitud), RMSE (penaliza grandes), MAPE (porcentual, falla cerca de 0).
+  \item Toda predicción se compara contra un baseline naïve.
+  \item Una sola partición engaña $\rightarrow$ backtesting / walk-forward.
+  \item AIC/BIC no deciden; decide el desempeño fuera de muestra.
+  \item El mejor modelo no siempre es el más complejo.
+\end{enumerate}
+\end{recordar}
+\end{frame}
+
+\begin{frame}{Cierre y transición}
+\[
+\text{serie}\fl\text{modelo}\fl\text{pronóstico}\fl\text{evaluación}
+\]
+Tenemos evidencia de cuánto se equivoca, a qué horizonte, con qué incertidumbre y si
+supera una referencia trivial.
+\vfill
+\begin{center}
+\fl\ Módulo 7: \emph{¿y si el modelo no se equivocó, sino que el proceso empezó a
+comportarse de forma anormal?}
+\end{center}
+\end{frame}
+
+\end{document}

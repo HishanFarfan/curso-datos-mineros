@@ -1,0 +1,173 @@
+\input{preambulo.tex}
+
+\begin{document}
+\portada{7}{Detección de anomalías y cambios en el proceso}
+
+\begin{frame}{Objetivo del módulo}
+
+\ruta{
+\text{anomalía puntual}\fl\text{métodos robustos}\fl\text{límites dinámicos}\fl\text{residuos}\fl\text{cambio persistente}\fl\text{régimen}
+}
+\idea{¿Cómo detectamos que un proceso empieza a comportarse de forma distinta a la esperada?}
+\end{frame}
+
+\begin{frame}{Pico aislado $\neq$ cambio persistente}
+\[
+100,102,101,99,103,\mathbf{170},101,100 \quad\Rightarrow\quad \text{anomalía puntual}
+\]
+\[
+100,101,99,102,100,\ \mathbf{130,131,129,132,130,\dots} \quad\Rightarrow\quad \text{nuevo nivel } \mu_1\to\mu_2
+\]
+\[
+\boxed{\text{pico aislado}\neq\text{nuevo comportamiento del proceso}}
+\]
+Python detecta "estadísticamente inusual"; la causa (falla, cambio de mineral,
+mantenimiento) requiere contexto operacional.
+\end{frame}
+
+\begin{frame}[fragile]{Z-score y su problema}
+\[
+z_i=\frac{x_i-\bar{x}}{s},\qquad \text{sospechoso si } |z|>3
+\]
+\begin{lstlisting}
+z = (serie - serie.mean()) / serie.std()
+anomalias = serie[z.abs() > 3]
+\end{lstlisting}
+\ojo{$\bar{x}$ y $s$ son sensibles justo a los extremos que queremos detectar.}
+$10,10,11,9,10,\mathbf{1000}$: el propio outlier infla media y desviación.
+\end{frame}
+
+\begin{frame}[fragile]{Métodos robustos: mediana y MAD}
+\[
+MAD=\operatorname{median}\big(|X_i-\operatorname{median}(X)|\big)
+\]
+\begin{lstlisting}
+med = serie.median()
+mad = (serie - med).abs().median()
+z_rob = 0.6745 * (serie - med) / mad
+\end{lstlisting}
+\[
+\text{media / std}\ \to\ \text{sensibles}
+\qquad
+\text{mediana / MAD / IQR}\ \to\ \text{robustos}
+\]
+\end{frame}
+
+\begin{frame}[fragile]{Límites dinámicos}
+El nivel "normal" cambia con el tiempo; un límite fijo $\bar{x}\pm3s$ deja de servir.
+\[
+L_t^{\sup/\inf}=\mu_t^{(w)}\pm k\,\sigma_t^{(w)}
+\]
+\begin{lstlisting}
+mu = serie.rolling(w, center=True).mean()
+sg = serie.rolling(w, center=True).std()
+fuera = serie[(serie > mu + 3*sg) | (serie < mu - 3*sg)]
+\end{lstlisting}
+\idea{una anomalía depende del contexto esperado}
+Ventana corta: se adapta incluso a la anomalía. Larga: reacciona tarde.
+\end{frame}
+
+\begin{frame}{Filtro de Hampel}
+Ventana móvil $+$ estadística robusta: para cada $t$ se usa la \textbf{mediana} y el
+\textbf{MAD} \emph{locales}.
+\[
+\boxed{\text{Hampel} = \text{detector robusto y local}}
+\]
+Adecuado para picos aislados en series cuyo nivel se desplaza (una tendencia no lo
+"engaña").
+\end{frame}
+
+\begin{frame}[fragile]{Residuos del modelo como detector}
+\[
+e_t=X_t-\hat X_t
+\]
+Con estacionalidad diaria, $X_t=200$ puede ser normal si $\hat X_t=195$ ($e_t=5$),
+pero anómalo si $\hat X_t=120$ ($e_t=80$).
+\[
+\boxed{\text{anomalía} = \text{observación incompatible con lo que el modelo esperaba}}
+\]
+\begin{lstlisting}
+e = observado - predicho
+fuera = e[(e > e.mean() + 3*e.std()) | (e < e.mean() - 3*e.std())]
+# o: observado fuera del intervalo de predicción [L_t, U_t]
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}{Cambios persistentes}
+\begin{columns}[T]
+\column{0.33\linewidth}
+\textbf{Nivel}\\ $\mu_1\neq\mu_2$\\ (setpoint, alimentación)
+\column{0.33\linewidth}
+\textbf{Tendencia}\\ $\beta_1\neq\beta_2$\\ (desgaste, deriva de sensor)
+\column{0.33\linewidth}
+\textbf{Variabilidad}\\ $\sigma_1^2\neq\sigma_2^2$\\ (proceso menos estable)
+\end{columns}
+\vfill
+\textbf{Régimen}: estado con comportamiento estadístico estable.
+$A(\mu=100,\sigma=5)\to B(\mu=130,\sigma=10)$: cambia la distribución y la dinámica.
+Un ARIMA entrenado en A verá crecer sus residuos en B.
+\end{frame}
+
+\begin{frame}{CUSUM: cambios pequeños pero persistentes}
+\[
+S_t=S_{t-1}+e_t
+\]
+Errores alrededor de cero: la suma no crece. Sesgo sistemático
+($+3,+4,+2,+5,\dots$): la suma aumenta sostenidamente.
+\[
+\boxed{\text{detección puntual}\neq\text{detección de cambio persistente}}
+\]
+$|e_t|>3\sigma$ ve eventos grandes; no ve $e_t=1.2\sigma$ repetido muchas veces.
+\end{frame}
+
+\begin{frame}[fragile]{Change-point detection}
+Buscar $\tau$ tal que $X_{t<\tau}$ y $X_{t\geq\tau}$ tienen comportamiento estadístico distinto.
+\begin{lstlisting}
+import ruptures as rpt
+bkps = rpt.Pelt(model="rbf").fit(y).predict(pen=15)
+\end{lstlisting}
+El algoritmo entrega \textbf{una señal}; el experto entrega \textbf{una interpretación}:
+revisar logs, setpoints, mantenimiento, cambios de turno o de material.
+\end{frame}
+
+\begin{frame}{Sensibilidad vs. falsas alarmas}
+\[
+\boxed{\text{sensibilidad}\ \leftrightarrow\ \text{falsas alarmas}}
+\]
+Umbral $\pm1\sigma$: muchas alertas, casi todas ruido $\to$ el personal las ignora.
+Umbral $\pm5\sigma$: pocas falsas alarmas, pero se pierden eventos.
+\vfill
+Dos errores operacionales: \textbf{falsa alarma} (dice "problema" y no lo hay) y
+\textbf{evento no detectado}. El umbral debe responder al \emph{costo de equivocarse}.
+\end{frame}
+
+\begin{frame}
+\begin{recordar}
+\begin{enumerate}
+  \item Un atípico no es necesariamente un error.
+  \item Pico $\neq$ nuevo régimen.
+  \item Z-score es simple; media/std son sensibles a outliers.
+  \item Alternativas robustas: mediana, MAD, IQR.
+  \item El comportamiento esperado cambia $\rightarrow$ límites dinámicos.
+  \item El modelo de pronóstico sirve para vigilar: $e_t=X_t-\hat X_t$.
+  \item Residuo grande = comportamiento inesperado, no falla confirmada.
+  \item Cambios en nivel, tendencia o variabilidad.
+  \item Una secuencia de errores pequeños puede pesar más que uno grande (CUSUM).
+  \item Toda detección automática requiere validación operacional.
+\end{enumerate}
+\end{recordar}
+\end{frame}
+
+\begin{frame}{Cierre y transición}
+\[
+\boxed{\text{observado}-\text{esperado}\fl\text{desviación}\fl\text{alerta}\fl\text{interpretación}}
+\]
+El modelo ya no solo responde \emph{¿qué ocurrirá?} sino también \emph{¿está ocurriendo
+algo distinto de lo que debería?}
+\vfill
+\begin{center}
+\fl\ Módulo 8: un caso minero completo, de los datos brutos a una decisión.
+\end{center}
+\end{frame}
+
+\end{document}

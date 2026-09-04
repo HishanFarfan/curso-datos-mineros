@@ -1,0 +1,244 @@
+\input{preambulo.tex}
+
+\begin{document}
+\portada{1}{Preparación de datos con Python}
+
+% ---------------------------------------------------------------
+\begin{frame}{Objetivo del módulo}
+Tomar una base de un proceso industrial y dejarla lista para el análisis temporal:
+\begin{itemize}
+  \item cargarla correctamente (formato, separador, decimal, codificación);
+  \item inspeccionar su estructura y sus tipos;
+  \item corregir problemas básicos de calidad;
+  \item organizar la variable temporal;
+  \item hacer una primera exploración gráfica.
+\end{itemize}
+\vfill
+\idea{Datos originales \fl datos limpios y estructurados}
+\end{frame}
+
+\begin{frame}{No se trata de aprender Python de memoria}
+En el curso se trabaja con \textbf{notebooks preparados en Google Colab}. Lo importante:
+\begin{itemize}
+  \item reconocer la estructura del código;
+  \item ejecutar las celdas \textbf{de arriba hacia abajo};
+  \item identificar qué variables hay que modificar;
+  \item interpretar las salidas;
+  \item adaptar el análisis a una nueva base.
+\end{itemize}
+\vfill
+\[
+\text{carga}\fl\text{limpieza}\fl\text{análisis}\fl\text{modelo}
+\]
+Si una celda anterior no se ejecutó, las siguientes fallan.
+\end{frame}
+
+\begin{frame}[fragile]{Tres librerías durante las primeras sesiones}
+\begin{columns}[T]
+\column{0.33\linewidth}
+\textbf{pandas}\\ datos tabulares: importar, filtrar, fechas, faltantes, agrupar.
+\column{0.33\linewidth}
+\textbf{NumPy}\\ operaciones numéricas y valores especiales (\code{np.nan}).
+\column{0.33\linewidth}
+\textbf{matplotlib}\\ gráficos: \code{plot}, \code{hist}, \code{scatter}, \code{boxplot}.
+\end{columns}
+\vfill
+\begin{lstlisting}
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+\end{lstlisting}
+No necesitamos cada librería completa: solo las herramientas del problema.
+\end{frame}
+
+\begin{frame}{La estructura de una base: el DataFrame}
+\begin{center}
+\begin{tabular}{lrrrr}
+\toprule
+Fecha & Tonelaje\_tph & Ley\_Cu & Recuperacion\_pct & Potencia\_kW\\
+\midrule
+01-08-2026 08:00 & 1450 & 0.82 & 88.2 & 3150\\
+01-08-2026 09:00 & 1472 & 0.80 & 87.9 & 3180\\
+01-08-2026 10:00 & 1435 & 0.85 & 89.1 & 3105\\
+\bottomrule
+\end{tabular}
+\end{center}
+\begin{itemize}
+  \item cada \textbf{columna} es una variable; cada \textbf{fila}, una observación;
+  \item variables típicas: tonelaje, flujo, presión, temperatura, ley, recuperación, potencia\ldots
+  \item y una variable especial: \idea{el tiempo}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Importación: los detalles importan}
+\begin{lstlisting}
+df = pd.read_csv("datos.csv")            # caso simple
+df = pd.read_csv("datos.csv", sep=";")   # export en español
+df = pd.read_csv("datos.csv", sep=";", decimal=",")   # 1450,5
+df = pd.read_csv("datos.csv", encoding="latin1")      # acentos, enie
+df = pd.read_excel("datos.xlsx", sheet_name="Produccion")
+\end{lstlisting}
+\vfill
+\ojo{nunca asumir que una columna es numérica solo porque \emph{se ve} numérica.}
+Si el decimal es coma y no lo indicamos, pandas la lee como texto.
+\end{frame}
+
+\begin{frame}[fragile]{Primera inspección: auditar antes de analizar}
+\begin{lstlisting}
+df.head()        df.tail()        df.shape       # (8760, 8)
+df.columns       df.dtypes        df.info()
+df.describe()
+\end{lstlisting}
+\begin{itemize}
+  \item \code{info()}: filas, columnas, no nulos, tipos;
+  \item nombres con espacios: \code{df.columns = df.columns.str.strip()};
+  \item \code{describe()} revela lo sospechoso: \code{Tonelaje mínimo = -999}.
+\end{itemize}
+\ojo{un \code{-999} puede ser un código de "sin medición". Todavía no lo elimines: primero entiende qué significa.}
+\end{frame}
+
+\begin{frame}[fragile]{El tiempo como variable}
+Aunque \emph{veamos} fechas, para Python \code{Fecha} suele ser \code{object} (texto).
+\begin{lstlisting}
+df["Fecha"] = pd.to_datetime(df["Fecha"], dayfirst=True)
+df = df.sort_values("Fecha")     # el orden contiene información
+df = df.set_index("Fecha")       # DatetimeIndex
+df.loc["2026-08-01"]             # selección por día
+\end{lstlisting}
+\vfill
+\[
+\boxed{\text{en una serie temporal, el orden de las observaciones no puede ignorarse}}
+\]
+\end{frame}
+
+\begin{frame}[fragile]{Frecuencia de muestreo y huecos}
+\begin{lstlisting}
+df = df.asfreq("h")            # impone paso horario; los huecos aparecen como NaN
+df.resample("D").mean()        # horario -> diario (media)
+df.resample("D").sum()         # producción total diaria
+\end{lstlisting}
+\begin{itemize}
+  \item \code{asfreq()}: cambia/impone la frecuencia \emph{sin} agregar;
+  \item \code{resample()}: agrupa y necesita una regla (\code{mean}, \code{sum}, \code{max}\ldots);
+  \item la agregación correcta \textbf{depende de la variable}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Valores faltantes: limpiar $\neq$ inventar}
+\begin{lstlisting}
+df.isna().sum()
+100 * df.isna().mean()
+df.dropna()                       # eliminar
+df["Tonelaje"].interpolate()      # interpolar
+# ...o mantener el NaN y documentarlo
+\end{lstlisting}
+La decisión depende de: cantidad, duración del hueco, variable, origen y finalidad.
+\idea{No es lo mismo interpolar una hora perdida que reconstruir una detención de planta}
+\end{frame}
+
+\begin{frame}[fragile]{Duplicados y timestamps repetidos}
+\begin{lstlisting}
+df.duplicated().sum()
+df = df.drop_duplicates()
+df.index.duplicated().sum()       # dos lecturas para la misma hora
+\end{lstlisting}
+\vspace{0.4em}
+Un timestamp repetido puede ser: dos mediciones legítimas, un duplicado, dos sensores, o algo a promediar.
+\ojo{no se decide solo con Python: primero hay que saber cómo se generaron los datos.}
+\end{frame}
+
+\begin{frame}{Valores inconsistentes}
+Una observación puede existir y no ser \code{NaN}, y aun así ser incorrecta:
+\begin{itemize}
+  \item \code{Tonelaje = -999}, \code{Recuperación = 240\%}, \code{Temperatura = -500\,\textdegree C};
+  \item un valor \textbf{constante} durante muchas horas $\Rightarrow$ sensor congelado;
+  \item cambios de escala, de unidades, saltos por recalibración.
+\end{itemize}
+\vfill
+\[
+\text{dato improbable}\ \neq\ \text{dato incorrecto}
+\]
+Si eliminamos todo lo inusual, borramos justo los eventos que luego queremos detectar.
+\end{frame}
+
+\begin{frame}[fragile]{Reemplazo de códigos conocidos}
+Si la documentación del sistema dice que \code{-999} significa "sin medición":
+\begin{lstlisting}
+df["Tonelaje"] = df["Tonelaje"].replace(-999, np.nan)
+\end{lstlisting}
+\vspace{0.6em}
+Ahora Python sabe \textbf{explícitamente} que la información está ausente, en lugar de
+tratar \code{-999} como un número real que distorsiona media y desviación.
+\end{frame}
+
+\begin{frame}{Los cuatro gráficos y sus preguntas}
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Gráfico & Pregunta principal\\
+\midrule
+Serie temporal & ¿Cómo evoluciona la variable?\\
+Histograma & ¿Cómo se distribuyen sus valores?\\
+Boxplot & ¿Dispersión y valores atípicos?\\
+Dispersión & ¿Cómo se relacionan dos variables?\\
+\bottomrule
+\end{tabular}
+\end{center}
+\vfill
+El histograma \textbf{elimina el orden temporal}: dos series muy distintas pueden tener
+el mismo histograma. Esa idea será central al pasar a series temporales.
+\end{frame}
+
+\begin{frame}[fragile]{Flujo mínimo del Módulo 1}
+\begin{lstlisting}
+df = pd.read_csv("datos_proceso.csv", sep=";", decimal=",")
+df.info(); df.describe()
+df["Tonelaje"] = df["Tonelaje"].replace(-999, np.nan)
+df["Fecha"] = pd.to_datetime(df["Fecha"], dayfirst=True)
+df = df.sort_values("Fecha").drop_duplicates().set_index("Fecha")
+df = df.asfreq("h")
+df.isna().sum()
+df["Tonelaje"].plot(figsize=(12, 4))
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}{Errores frecuentes}
+\begin{itemize}
+  \item asumir tipo numérico sin verificar \code{dtypes};
+  \item modelar sin haber mirado la serie;
+  \item eliminar automáticamente todo valor extraño;
+  \item interpolar un hueco largo como si fuera una medición aislada;
+  \item olvidar \code{sort\_values} antes de trabajar la serie.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{recordar}
+\begin{enumerate}
+  \item Siempre inspeccionar antes de analizar.
+  \item Verificar los tipos de las variables.
+  \item Una fecha en texto todavía no es una variable temporal.
+  \item En series temporales el orden importa.
+  \item Revisar frecuencia de muestreo y huecos.
+  \item Faltante, duplicado y anómalo son problemas \emph{distintos}.
+  \item No eliminar automáticamente lo extraño.
+  \item Antes de modelar, visualizar.
+\end{enumerate}
+\end{recordar}
+\vfill
+\[
+\boxed{\text{La calidad del modelo nunca supera la calidad de los datos}}
+\]
+\end{frame}
+
+\begin{frame}{Cierre y transición}
+El Módulo 1 termina con una base cargada, inspeccionada, con el tiempo ordenado,
+problemas reconocidos y una visualización preliminar.
+\vfill
+\begin{center}
+M1: \emph{¿mis datos están bien preparados?}\\[0.4em]
+\fl\quad M2: \emph{¿qué información estadística puedo extraer?}
+\end{center}
+\end{frame}
+
+\end{document}

@@ -1,0 +1,216 @@
+\input{preambulo.tex}
+
+\begin{document}
+\portada{2}{Estadística aplicada a datos de proceso}
+
+\begin{frame}{Objetivo del módulo}
+Describir cuantitativamente una variable, comparar condiciones de operación,
+evaluar relaciones y leer la incertidumbre. El módulo termina en una idea:
+\vfill
+\idea{las herramientas estadísticas convencionales suelen asumir independencia entre observaciones}
+\vfill
+
+\ruta{
+\text{describir}\fl\text{comparar}\fl\text{relacionar}\fl\text{inferir}\fl\text{cuestionar la independencia}
+}
+\end{frame}
+
+\begin{frame}{Media y mediana}
+\[
+\bar{x}=\frac{1}{n}\sum_{i=1}^{n}x_i
+\]
+La media es sensible a valores extremos. Para $10,11,10,12,57$: $\bar{x}=20$, pero
+casi ninguna observación está cerca de 20; la mediana es $11$.
+\vfill
+\[
+\bar{x}\approx\text{mediana}\ \Rightarrow\ \text{distribución aproximadamente simétrica}
+\]
+\[
+\bar{x}>\text{mediana}\ \Rightarrow\ \text{cola hacia valores altos}
+\]
+\idea{promedio y valor típico no siempre son lo mismo}
+\end{frame}
+
+\begin{frame}{Nivel de operación $\neq$ estabilidad}
+\[
+s^2=\frac{1}{n-1}\sum_{i=1}^{n}(x_i-\bar{x})^2,\qquad s=\sqrt{s^2}
+\]
+Dos operaciones con media $1500$ t/h: una entre $1450$--$1550$, otra entre $1000$--$2000$.
+El promedio no las distingue.
+\vfill
+Comparación relativa entre escalas distintas: coeficiente de variación
+\[
+CV=\frac{s}{\bar{x}}\qquad (\text{a menudo en \%})
+\]
+\end{frame}
+
+\begin{frame}[fragile]{Cuantiles e IQR}
+\[
+Q_1=25\%,\quad Q_2=\text{mediana},\quad Q_3=75\%
+\]
+\[
+IQR=Q_3-Q_1
+\]
+El IQR mide la dispersión del $50\%$ central y es \textbf{robusto} frente a extremos
+(a diferencia de $s$).
+\vfill
+\begin{lstlisting}
+q1, q3 = df["Tonelaje"].quantile([0.25, 0.75])
+iqr = q3 - q1
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}{Valores atípicos}
+\idea{atípico no significa necesariamente incorrecto}
+Regla del IQR: sospechoso si
+\[
+x<Q_1-1.5\,IQR \quad\text{o}\quad x>Q_3+1.5\,IQR
+\]
+Regla de desviaciones estándar: $z_i=\dfrac{x_i-\bar{x}}{s}$, sospechoso si $|z|>3$
+(funciona mejor con distribuciones simétricas y sin colas largas; \textbf{no} es universal).
+\end{frame}
+
+\begin{frame}[fragile]{Comparar condiciones de operación}
+\begin{lstlisting}
+df.groupby("Turno")["Tonelaje"].agg(["mean","median","std","count"])
+df.boxplot(column="Tonelaje", by="Turno")
+\end{lstlisting}
+\vspace{0.5em}
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+Turno & Media & Mediana & Std\\
+\midrule
+Día & 1510 & 1502 & 85\\
+Noche & 1450 & 1448 & 130\\
+\bottomrule
+\end{tabular}
+\end{center}
+\idea{¿cambió el tiempo o cambió la condición operacional?}
+\end{frame}
+
+\begin{frame}{Relaciones: covarianza y correlación}
+\[
+\operatorname{Cov}(X,Y)=\frac{1}{n-1}\sum (x_i-\bar{x})(y_i-\bar{y})
+\qquad
+r=\frac{\operatorname{Cov}(X,Y)}{s_X s_Y}\in[-1,1]
+\]
+\begin{itemize}
+  \item $r>0$ asociación lineal positiva; $r<0$ negativa; $r\approx0$ sin relación \emph{lineal};
+  \item Spearman: relación \emph{monótona} basada en el orden.
+\end{itemize}
+\vfill
+\[
+\boxed{\text{correlación}\neq\text{causalidad}}
+\qquad
+\text{secuencia: visualizar}\fl\text{calcular}\fl\text{interpretar}
+\]
+\end{frame}
+
+\begin{frame}{Relaciones espurias}
+Dos variables que crecen durante meses pueden dar $r=0.95$ solo por una
+\textbf{tendencia temporal común}.
+\vfill
+\idea{cuando las observaciones están ordenadas en el tiempo, una correlación convencional puede ser engañosa}
+\vfill
+Todavía no hay que resolverlo; solo reconocer que existe.
+\end{frame}
+
+\begin{frame}{De la descripción a la inferencia}
+Observamos una muestra $x_1,\dots,x_n$; $\bar{x}$ estima una media poblacional
+desconocida $\mu$.
+\[
+SE(\bar{x})=\frac{s}{\sqrt{n}}
+\qquad(\text{supone observaciones independientes})
+\]
+Intervalo de confianza: comunica la incertidumbre del \emph{procedimiento} de estimación,
+no "la media está entre estos números".
+\end{frame}
+
+\begin{frame}{El valor $p$ y sus malas lecturas}
+\[
+H_0:\mu_{\text{día}}=\mu_{\text{noche}}
+\qquad
+H_1:\mu_{\text{día}}\neq\mu_{\text{noche}}
+\]
+$p$ = qué tan incompatibles son los datos con $H_0$ bajo el modelo. Regla usual:
+rechazar si $p<0.05$.
+\vfill
+\ojo{$p<0.05$ \textbf{no} significa "95\% de probabilidad de que la hipótesis sea correcta".}
+\end{frame}
+
+\begin{frame}{Significancia $\neq$ relevancia operacional}
+Con $n=500\,000$: Turno A $\bar{x}=90.01$, Turno B $\bar{x}=90.03$.
+Diferencia $0.02$, puede salir "significativa"\ldots ¿importa?
+\vfill
+\[
+\boxed{\text{significativo estadísticamente}\neq\text{importante operacionalmente}}
+\]
+Y al revés: con pocos datos, una diferencia real ($80$ vs $90$) puede no alcanzar significancia.
+Conclusión correcta: "no hay evidencia suficiente", no "no existe diferencia".
+\end{frame}
+
+\begin{frame}{El supuesto clave: independencia}
+Un molino a $1450$ t/h a las 10:00. ¿A las 10:01 es igual de probable $200$, $1500$ o $5000$?
+\vfill
+\[
+X_{t+1}\ \not\!\perp\ X_t
+\]
+Muchas fórmulas convencionales suponen $x_1,\dots,x_n$ independientes. Los datos de
+proceso normalmente \textbf{violan} ese supuesto.
+\end{frame}
+
+\begin{frame}[fragile]{El experimento conceptual del módulo}
+\begin{lstlisting}
+df["Tonelaje"].sample(frac=1)   # mezclar el orden al azar
+\end{lstlisting}
+Tras mezclar: \textbf{misma} media, mediana, desviación, histograma y cuantiles\ldots
+pero la estructura temporal desapareció por completo.
+\vfill
+\[
+\boxed{\text{la estadística convencional se conserva mientras toda la información temporal se pierde}}
+\]
+\end{frame}
+
+\begin{frame}{Por qué la dependencia afecta la inferencia}
+Una variable medida cada segundo durante una hora: $n=3600$.
+Si cambia lentamente, muchas mediciones consecutivas son casi iguales:
+\[
+n_{\text{efectivo}}<n
+\]
+Ignorarlo produce: intervalos demasiado estrechos, valores $p$ artificialmente pequeños,
+sobreestimación de la precisión, conclusiones excesivamente confiadas.
+\end{frame}
+
+\begin{frame}
+\begin{recordar}
+\begin{enumerate}
+  \item Un promedio sin medida de variabilidad dice poco.
+  \item Media y mediana pueden contar historias distintas.
+  \item Los cuantiles describen sin depender de extremos.
+  \item Un atípico no se elimina automáticamente.
+  \item Comparar explícitamente turnos, campañas, tipos de mineral.
+  \item $\operatorname{Corr}(X,Y)\neq$ causalidad.
+  \item Significancia $\neq$ relevancia operacional.
+  \item Toda estimación tiene incertidumbre.
+  \item Las herramientas tienen supuestos; el que nos importa es \textbf{independencia}.
+  \item Los datos de procesos suelen violarlo: $X_t\leftrightarrow X_{t-1},X_{t-2},\dots$
+\end{enumerate}
+\end{recordar}
+\end{frame}
+
+\begin{frame}{Cierre del primer bloque}
+\begin{center}
+M1: \emph{¿cómo preparo mis datos?}\\[0.3em]
+M2: \emph{¿cómo los describo e interpreto?}\\[0.6em]
+\fl\quad pregunta abierta antes del receso:
+\end{center}
+\vfill
+\[
+\boxed{\text{¿Qué ocurre cuando los datos tienen memoria?}}
+\]
+Ahí empieza el Módulo 3: frecuencia, tendencia, estacionalidad, ciclos, ruido,
+rezagos, diferencias y estadísticas móviles.
+\end{frame}
+
+\end{document}
